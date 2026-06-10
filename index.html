@@ -500,8 +500,13 @@ function viewAdd(){
     <div class="field"><label class="flabel">電話</label><input class="finput" id="inPhone" placeholder="0900-000-000" inputmode="tel"></div>
     <div class="field"><label class="flabel">服務項目（可複選）</label><div class="svc-grid" id="svcGrid"></div></div>
     <div style="display:flex;gap:14px;">
-      ${currentRole==='owner'?'<div class="field" style="flex:1.4;"><label class="flabel">價格</label><input class="finput en" id="inPrice" placeholder="NT$ 0" inputmode="numeric"></div>':''}
-      <div class="field" style="flex:1;"><label class="flabel">日期</label><input class="finput" id="inDate" type="date"></div>
+    <div class="field" style="flex:1.4;">
+    <label class="flabel">價格</label>
+    <input class="finput en" id="inPrice" placeholder="NT$ 0" inputmode="numeric">
+    </div>
+
+    
+    <div class="field" style="flex:1;"><label class="flabel">日期</label><input class="finput" id="inDate" type="date"></div>
     </div>
     <div class="field">
       <label class="flabel">客人簽名（點擊放大）</label>
@@ -532,7 +537,7 @@ window.saveRecord=async function(){
   const dateInput=$('inDate').value;
   if(!name){toast('請填寫姓名');return;}
   if(draft.svcs.length===0){toast('請選擇服務項目');return;}
-  if(currentRole==='owner'&&!price){toast('請填寫價格');return;}
+  if(!price){toast('請填寫價格');return;}
   const date=dateInput?dateInput.replace(/-/g,'/'):todayStr();
   const rec={
     name,phone,price,services:draft.svcs,date,time:nowTime(),
