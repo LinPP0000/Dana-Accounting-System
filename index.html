@@ -794,34 +794,34 @@ window.saveEdit=async function(id){
 
 /* ===== 匯出 ===== */
 function viewExport(){
+  const today=new Date();
+  const firstDay=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-01';
+  const todayVal=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   return `<div class="body-pad">
     <div class="sec-title">✦ &nbsp; 匯出 Excel</div>
-    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:22px;">把記錄匯出成 Excel 檔，可存到手機或上傳雲端備份。</div>
-    <div class="field"><label class="flabel">範圍</label>
-      <select class="finput" id="expRange">
-        <option value="all">全部記錄</option>
-        <option value="month">本月</option>
-      </select>
+    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:22px;">選擇日期區間匯出記錄。</div>
+    <div style="display:flex;gap:14px;">
+      <div class="field" style="flex:1;"><label class="flabel">開始日期</label><input type="date" class="finput" id="expStart" value="${firstDay}"></div>
+      <div class="field" style="flex:1;"><label class="flabel">結束日期</label><input type="date" class="finput" id="expEnd" value="${todayVal}"></div>
     </div>
     <button class="btn-metal" onclick="doExport()">匯出 EXCEL</button>
   </div>`;
 }
 window.doExport=async function(){
-  const range=$('expRange').value;
-  let snap;
-  if(range==='month'){
-    const k=todayStr().slice(0,7);
-    snap=await getDocs(query(collection(db,'records'),where('date','>=',k+'/01'),orderBy('date','desc')));
-  } else {
-    snap=await getDocs(query(collection(db,'records'),orderBy('date','desc')));
-  }
-  if(snap.empty){toast('沒有資料可匯出');return;}
-  const rows=snap.docs.map(d=>{const r=d.data();return{日期:r.date,時間:r.time,姓名:r.name,電話:r.phone||'',服務項目:r.services.join('、'),價格:r.price,已簽名:r.sign?'是':'否'};});
-  const ws=XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:12},{wch:8},{wch:10},{wch:14},{wch:18},{wch:10},{wch:8}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'XIUGU 記錄');
-  XLSX.writeFile(wb,`XIUGU_記錄_${todayStr().replace(/\//g,'')}.xlsx`);
-  toast('已匯出');
+  const start=$('expStart').value.replace(/-/g,'/');
+  const end=$('expEnd').value.replace(/-/g,'/');
+  if(!start||!end){toast('請選擇日期區間');return;}
+  if(start>end){toast('開始日期不能晚於結束日期');return;}
+  try{
+    const snap=await getDocs(query(collection(db,'records'),where('date','>=',start),where('date','<=',end),orderBy('date','desc')));
+    if(snap.empty){toast('此區間沒有資料');return;}
+    const rows=snap.docs.map(d=>{const r=d.data();return{日期:r.date,時間:r.time,姓名:r.name,電話:r.phone||'',服務項目:r.services.join('、'),價格:r.price,已簽名:r.sign?'是':'否'};});
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:12},{wch:8},{wch:10},{wch:14},{wch:18},{wch:10},{wch:8}];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'XIUGU 記錄');
+    XLSX.writeFile(wb,`XIUGU_${start.replace(/\//g,'')}_${end.replace(/\//g,'')}.xlsx`);
+    toast('已匯出');
+  }catch(e){toast('匯出失敗：'+e.message);}
 };
 
 /* ===== 邀請碼管理 ===== */
