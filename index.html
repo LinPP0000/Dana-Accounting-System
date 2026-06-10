@@ -471,7 +471,7 @@ window.nav = function(view){
   else if(view==='search') area.innerHTML=viewSearch();
   else if(view==='export'&&isOwner) area.innerHTML=viewExport();
   else if(view==='invite'&&isOwner) area.innerHTML=viewInvite();
-  else if(view==='settings'&&isOwner) area.innerHTML=viewSettings();
+  else if(view==='settings'&&isOwner){ area.innerHTML=viewSettings(); loadStaffList(); }
   else area.innerHTML='<div class="body-pad"><div class="empty">無此頁面</div></div>';
   window.scrollTo(0,0);
   if(view==='add') afterAddRender();
