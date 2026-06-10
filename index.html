@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="XIUGU">
@@ -16,8 +16,8 @@
   --metal-text:linear-gradient(160deg,#777 0%,#fff 35%,#ccc 50%,#fff 65%,#888 100%);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{background:#080808;color:#c8c8c8;font-family:'Noto Serif TC',serif;font-weight:400;width:100%;min-height:100vh;-webkit-font-smoothing:antialiased;}
-input,button,textarea{font-family:inherit;}
+html,body{background:#080808;color:#c8c8c8;font-family:'Noto Serif TC',serif;font-weight:400;width:100%;min-height:100vh;-webkit-font-smoothing:antialiased;font-size:16px;}
+input,button,textarea{font-family:inherit;font-size:16px;}
 .metal-text{background:var(--metal-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .en{font-family:'Playfair Display',serif;}
 
@@ -30,8 +30,8 @@ input,button,textarea{font-family:inherit;}
 
 /* ====== 輸入框 ====== */
 .field{margin-bottom:16px;}
-.flabel{font-size:10px;letter-spacing:0.25em;color:#888;margin-bottom:8px;display:block;}
-.finput{width:100%;background:#131313;border:0.5px solid #2e2e2e;border-radius:8px;height:44px;padding:0 14px;color:#e8e8e8;font-size:16px;outline:none;transition:border-color 0.2s;}
+.flabel{font-size:11px;letter-spacing:0.25em;color:#888;margin-bottom:8px;display:block;}
+.finput{width:100%;background:#131313;border:0.5px solid #2e2e2e;border-radius:8px;height:48px;padding:0 14px;color:#e8e8e8;font-size:16px;outline:none;transition:border-color 0.2s;}
 .finput:focus{border-color:#888;}
 .finput::placeholder{color:#444;}
 
@@ -48,9 +48,9 @@ input,button,textarea{font-family:inherit;}
 /* ====== 登入 ====== */
 #login .wrap{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 32px;}
 #login .logo{font-family:'Playfair Display',serif;font-size:34px;letter-spacing:0.16em;font-weight:700;padding-left:0.16em;}
-#login .sub{font-size:9px;letter-spacing:0.4em;color:#666;margin-top:10px;padding-left:0.4em;}
-#login .form{width:100%;max-width:300px;margin-top:48px;}
-#login .forgot{text-align:center;margin-top:22px;font-size:12px;color:#666;letter-spacing:0.1em;cursor:pointer;}
+#login .sub{font-size:10px;letter-spacing:0.4em;color:#666;margin-top:10px;padding-left:0.4em;}
+#login .form{width:100%;max-width:320px;margin-top:48px;}
+#login .forgot{text-align:center;margin-top:22px;font-size:13px;color:#666;letter-spacing:0.1em;cursor:pointer;}
 #login .forgot:active{color:#aaa;}
 
 /* ====== 服務方框 ====== */
@@ -67,7 +67,7 @@ input,button,textarea{font-family:inherit;}
 .sign-prev .ph{color:#999;font-size:13px;letter-spacing:0.1em;}
 .sign-prev img{max-height:78px;max-width:90%;}
 .sign-prev .zo{position:absolute;bottom:6px;right:9px;font-size:16px;color:#999;}
-.sign-modal{display:none;position:absolute;top:0;left:0;right:0;bottom:0;min-height:100vh;background:#080808;z-index:60;flex-direction:column;padding:20px;}
+.sign-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;min-height:100vh;background:#080808;z-index:60;flex-direction:column;padding:20px;}
 .sign-modal.active{display:flex;}
 .sign-modal .hd{font-size:14px;color:#ccc;letter-spacing:0.15em;text-align:center;margin-bottom:14px;}
 .sign-canvas-wrap{flex:1;background:#f4f4f4;border-radius:10px;position:relative;overflow:hidden;}
@@ -79,17 +79,17 @@ input,button,textarea{font-family:inherit;}
 /* ====== 記錄卡 ====== */
 .rec{background:#131313;border:0.5px solid #262626;border-radius:10px;padding:14px 15px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
 .rec .nm{color:#e8e8e8;font-size:15px;font-weight:500;}
-.rec .meta{color:#777;font-size:11px;margin-top:4px;}
+.rec .meta{color:#777;font-size:12px;margin-top:4px;}
 .rec .pr{font-family:'Playfair Display',serif;color:#d4d4d4;font-size:16px;}
 
 /* ====== 數據卡 ====== */
 .stat-big{background:linear-gradient(125deg,#161616 0%,#242424 50%,#161616 100%);border:0.5px solid #333;border-radius:14px;padding:22px 24px;position:relative;overflow:hidden;}
-.stat-big .lb{font-size:10px;letter-spacing:0.3em;color:#888;margin-bottom:10px;}
+.stat-big .lb{font-size:11px;letter-spacing:0.3em;color:#888;margin-bottom:10px;}
 .stat-big .num{font-family:'Playfair Display',serif;font-size:38px;font-weight:600;color:#fff;}
-.stat-big .cnt{font-size:11px;color:#777;margin-top:6px;}
+.stat-big .cnt{font-size:12px;color:#777;margin-top:6px;}
 .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
 .stat-sm{background:#141414;border:0.5px solid #2a2a2a;border-radius:12px;padding:14px;}
-.stat-sm .lb{font-size:9px;letter-spacing:0.2em;color:#777;}
+.stat-sm .lb{font-size:10px;letter-spacing:0.2em;color:#777;}
 .stat-sm .num{font-family:'Playfair Display',serif;font-size:20px;color:#e8e8e8;margin-top:4px;font-weight:500;}
 
 /* ====== 抽屜選單 ====== */
@@ -99,7 +99,7 @@ input,button,textarea{font-family:inherit;}
 .drawer.active{transform:translateX(0);}
 .drawer .dh{padding:26px 22px 20px;border-bottom:0.5px solid #1e1e1e;}
 .drawer .dh .lg{font-family:'Playfair Display',serif;font-size:22px;letter-spacing:0.14em;color:#f2f2f2;font-weight:600;}
-.drawer .dh .sb{font-size:8px;letter-spacing:0.35em;color:#6e6e6e;margin-top:6px;}
+.drawer .dh .sb{font-size:9px;letter-spacing:0.35em;color:#6e6e6e;margin-top:6px;}
 .drawer .items{padding:10px;flex:1;overflow-y:auto;}
 .di{display:flex;align-items:center;gap:14px;padding:15px 14px;border-radius:10px;cursor:pointer;color:#d8d8d8;font-size:15px;transition:background 0.15s;}
 .di .ic{font-size:20px;color:#b0b0b0;width:22px;text-align:center;}
@@ -119,17 +119,17 @@ input,button,textarea{font-family:inherit;}
 .svc-stat .v{color:#e0e0e0;font-family:'Playfair Display',serif;}
 
 /* ====== Toast ====== */
-.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;border:0.5px solid #3a3a3a;color:#e8e8e8;padding:12px 22px;border-radius:10px;font-size:13px;letter-spacing:0.1em;z-index:100;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;border:0.5px solid #3a3a3a;color:#e8e8e8;padding:12px 22px;border-radius:10px;font-size:14px;letter-spacing:0.1em;z-index:100;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ====== Modal 通用 ====== */
 .modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:70;align-items:center;justify-content:center;padding:28px;}
 .modal-mask.active{display:flex;}
-.modal{background:#111;border:0.5px solid #2e2e2e;border-radius:14px;padding:24px;width:100%;max-width:320px;}
+.modal{background:#111;border:0.5px solid #2e2e2e;border-radius:14px;padding:24px;width:100%;max-width:340px;}
 .modal .mt{font-size:15px;color:#f2f2f2;letter-spacing:0.1em;margin-bottom:16px;font-weight:600;}
 .modal .mtext{font-size:13px;color:#aaa;line-height:1.7;margin-bottom:18px;}
 .empty{text-align:center;color:#555;font-size:13px;letter-spacing:0.1em;padding:40px 0;}
-.search-result-meta{color:#777;font-size:11px;margin-top:4px;}
+.search-result-meta{color:#777;font-size:12px;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -158,7 +158,7 @@ input,button,textarea{font-family:inherit;}
         </div>
         <button class="btn-metal" onclick="doSetup()">建立 CREATE</button>
       </div>
-      <div id="loginNormal">
+      <div id="loginNormal" style="display:none;">
         <div class="field">
           <label class="flabel">密碼 PASSWORD</label>
           <input type="password" class="finput" id="loginPw" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
@@ -177,8 +177,6 @@ input,button,textarea{font-family:inherit;}
     <span class="logo">XIUGU</span>
     <span style="width:30px;"></span>
   </div>
-
-  <!-- 各分頁 -->
   <div id="viewArea"></div>
 </div>
 
