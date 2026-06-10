@@ -202,7 +202,7 @@ input,button,textarea,select{font-family:inherit;font-size:16px;}
       <div class="divider">✦ &nbsp; ✦ &nbsp; ✦</div>
     </div>
 
-    <div id="loginSetup" style="display:none;">
+    <div id="loginSetup">
       <div class="field">
         <label class="flabel">設定密碼 SET PASSWORD</label>
         <input type="password" class="finput" id="setPw1" placeholder="輸入新密碼" inputmode="numeric">
@@ -218,7 +218,7 @@ input,button,textarea,select{font-family:inherit;font-size:16px;}
       <button class="btn-metal" onclick="doSetup()">建立 CREATE</button>
     </div>
 
-    <div id="loginNormal" style="display:none;">
+    <div id="loginNormal" style="display:none;" class="login-normal">
       <div class="field">
         <label class="flabel">密碼 PASSWORD</label>
         <input type="password" class="finput" id="loginPw" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
@@ -327,6 +327,23 @@ input,button,textarea,select{font-family:inherit;font-size:16px;}
 </div>
 
 <div class="toast" id="toast"></div>
+<script>
+// 立即執行，不等 DOMContentLoaded
+(function(){
+  try{
+    var cfg = JSON.parse(localStorage.getItem('xiugu_cfg')||'{}');
+    if(cfg.pw){
+      // 有密碼 → 顯示登入
+      document.getElementById('loginSetup').style.display='none';
+      document.getElementById('loginNormal').style.display='block';
+    } else {
+      // 無密碼 → 顯示設定
+      document.getElementById('loginSetup').style.display='block';
+      document.getElementById('loginNormal').style.display='none';
+    }
+  }catch(e){}
+})();
+</script>
 <script src="app.js"></script>
 </body>
 </html>
