@@ -22,15 +22,17 @@ function todayStr(){ const d=new Date(); return d.getFullYear()+'/'+String(d.get
 function nowTime(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
 
-
 function initLogin(){
+  const setup = $('loginSetup');
+  const normal = $('loginNormal');
+  if(!setup || !normal) return;
   const cfg = DB.getCfg();
   if(!cfg.pw){
-    $('loginSetup').style.display='block';
-    $('loginNormal').style.display='none';
+    setup.style.display='block';
+    normal.style.display='none';
   } else {
-    $('loginSetup').style.display='none';
-    $('loginNormal').style.display='block';
+    setup.style.display='none';
+    normal.style.display='block';
   }
 }
 
@@ -70,7 +72,7 @@ function enterApp(){
   nav('add');
 }
 
-/* ---------- 忘記密碼（EmailJS）---------- */
+/* ---------- 忘記密碼 ---------- */
 let _genCode = '';
 function openForgot(){ $('forgotMask').classList.add('active'); $('forgotStep1').style.display='block'; $('forgotStep2').style.display='none'; }
 function closeForgot(){ $('forgotMask').classList.remove('active'); }
@@ -79,7 +81,6 @@ function sendCode(){
   const cfg = DB.getCfg();
   if(!cfg.email){ toast('尚未設定救援信箱'); return; }
   _genCode = String(Math.floor(100000 + Math.random()*900000));
-  // 若已設定 EmailJS 就真的寄信，否則提示
   if(cfg.emailjs && cfg.emailjs.service && window.emailjs){
     emailjs.send(cfg.emailjs.service, cfg.emailjs.template, {
       to_email: cfg.email, code: _genCode
@@ -88,7 +89,6 @@ function sendCode(){
       $('forgotStep1').style.display='none'; $('forgotStep2').style.display='block';
     }).catch(()=>toast('寄信失敗，請檢查設定'));
   } else {
-    // 尚未設定 EmailJS：示範用，直接顯示驗證碼
     alert('（尚未設定 Email 寄信服務）\n\n你的驗證碼是：'+_genCode+'\n\n設定 EmailJS 後即可自動寄到信箱。');
     $('forgotStep1').style.display='none'; $('forgotStep2').style.display='block';
   }
@@ -102,7 +102,7 @@ function resetPw(){
   toast('密碼已重設'); closeForgot(); initLogin();
 }
 
-
+/* ---------- 抽屜選單 ---------- */
 function openDrawer(){ $('drawer').classList.add('active'); $('drawerMask').classList.add('active'); }
 function closeDrawer(){ $('drawer').classList.remove('active'); $('drawerMask').classList.remove('active'); }
 
@@ -123,6 +123,7 @@ function nav(view){
   if(view==='month') renderMonth();
 }
 
+/* ---------- 新增記錄 ---------- */
 let draft = { svcs:[], sign:'' };
 
 function viewAdd(){
@@ -150,13 +151,10 @@ function viewAdd(){
 }
 
 function afterAddRender(){
-  // 重置 draft
   draft = { svcs:[], sign:'' };
-  // 服務方框
   $('svcGrid').innerHTML = SVCS.map(s=>
     `<div class="svc-box" data-s="${s}" onclick="toggleSvc('${s}')"><span class="nm">${s}</span><span class="ck">✓</span></div>`
   ).join('');
-  // 預設日期 = 今天
   const d=new Date();
   $('inDate').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
@@ -190,7 +188,7 @@ function saveRecord(){
   nav('add');
 }
 
-
+/* ---------- 手寫簽名 ---------- */
 let sctx, sdrawing=false, shasInk=false, scanvas;
 function openSign(){
   $('signModal').classList.add('active');
@@ -224,6 +222,7 @@ function signDone(){
   $('signModal').classList.remove('active');
 }
 
+/* ---------- 今日營業額 ---------- */
 function viewToday(){
   const t = todayStr();
   const recs = DB.getRecords().filter(r=>r.date===t);
@@ -256,7 +255,7 @@ function recCard(r){
   </div>`;
 }
 
-
+/* ---------- 月結報表 ---------- */
 let mCur = new Date();
 function viewMonth(){
   return `<div class="body-pad">
@@ -277,7 +276,6 @@ function renderMonth(){
   $('mTxt').textContent = y+'.'+String(m).padStart(2,'0');
   const recs = DB.getRecords().filter(r=>r.date.slice(0,7)===key);
   const total = recs.reduce((s,r)=>s+r.price,0);
-  // 各服務統計
   const svcCount = {};
   recs.forEach(r=>r.services.forEach(s=>{ svcCount[s]=(svcCount[s]||0)+1; }));
   const svcRows = Object.keys(svcCount).sort((a,b)=>svcCount[b]-svcCount[a])
@@ -303,7 +301,7 @@ function recCardFull(r){
   </div>`;
 }
 
-
+/* ---------- 搜尋客人 ---------- */
 function viewSearch(){
   return `<div class="body-pad">
     <div class="sec-title"><span class="diamond" style="padding:0;">✦</span>搜尋客人</div>
@@ -319,7 +317,6 @@ function runSearch(){
     (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q)
   );
   if(!recs.length){ box.innerHTML='<div class="empty">找不到符合的記錄</div>'; return; }
-  // 依客人分組統計
   const byName = {};
   recs.forEach(r=>{ const k=r.name+'|'+r.phone; (byName[k]=byName[k]||[]).push(r); });
   let html='';
@@ -339,7 +336,7 @@ function runSearch(){
   box.innerHTML = html;
 }
 
-
+/* ---------- 記錄詳情 / 編輯 / 刪除 ---------- */
 function openRec(id){
   const r = DB.getRecords().find(x=>x.id===id);
   if(!r) return;
@@ -382,7 +379,7 @@ function saveEdit(id){
   nav(document.querySelector('.di.on').dataset.view||'today');
 }
 
-
+/* ---------- 匯出 Excel ---------- */
 function viewExport(){
   return `<div class="body-pad">
     <div class="sec-title"><span class="diamond" style="padding:0;">✦</span>匯出 Excel</div>
@@ -414,24 +411,21 @@ function doExport(){
   toast('已匯出');
 }
 
-
+/* ---------- 設定 ---------- */
 function viewSettings(){
   const cfg = DB.getCfg();
   return `<div class="body-pad">
     <div class="sec-title"><span class="diamond" style="padding:0;">✦</span>設定</div>
     <div class="field"><label class="flabel">救援信箱 EMAIL</label><input class="finput" id="stEmail" value="${cfg.email||''}"></div>
     <button class="btn-ghost" style="width:100%;" onclick="saveEmail()">更新信箱</button>
-
     <div class="diamond" style="padding:24px 0 8px;">— 修改密碼 —</div>
     <div class="field"><label class="flabel">舊密碼</label><input type="password" class="finput" id="stOld"></div>
     <div class="field"><label class="flabel">新密碼</label><input type="password" class="finput" id="stNew"></div>
     <button class="btn-ghost" style="width:100%;" onclick="changePw()">更新密碼</button>
-
     <div class="diamond" style="padding:24px 0 8px;">— Google Sheets 備份（選填）—</div>
     <div style="color:#777;font-size:12px;line-height:1.7;margin-bottom:12px;">貼上你的 Apps Script 網址，新記錄會自動同步備份。</div>
     <div class="field"><input class="finput" id="stSheet" placeholder="https://script.google.com/..." value="${cfg.sheetUrl||''}"></div>
     <button class="btn-ghost" style="width:100%;" onclick="saveSheet()">儲存網址</button>
-
     <div class="diamond" style="padding-top:30px;">✦&nbsp;✦&nbsp;✦</div>
   </div>`;
 }
@@ -444,15 +438,17 @@ function changePw(){
 }
 function saveSheet(){ const c=DB.getCfg(); c.sheetUrl=$('stSheet').value.trim(); DB.setCfg(c); toast('已儲存'); }
 
-
+/* ---------- 同步 Google Sheets ---------- */
 function syncToSheets(rec){
   const c = DB.getCfg();
   if(!c.sheetUrl) return;
   fetch(c.sheetUrl, {
     method:'POST', headers:{'Content-Type':'text/plain'},
     body: JSON.stringify({ type:'record', ...rec })
-  }).catch(()=>{ /* 離線時靜默，資料仍存在本機 */ });
+  }).catch(()=>{});
 }
 
-
-initLogin();
+/* ---------- 啟動 ---------- */
+document.addEventListener('DOMContentLoaded', function(){
+  initLogin();
+});
