@@ -1,19 +1,11 @@
-/* ============================================================
-   XIUGU 記帳 APP
-   資料存在手機瀏覽器 (localStorage)，可選擇同步到 Google Sheets
-   ============================================================ */
-
-/* ---------- 設定區（之後可在「設定」頁修改 EmailJS / Sheets）---------- */
 const SVCS = ['剪髮','染髮','燙髮','護髮','頭皮護理','局部燙','局部染'];
 
-/* ---------- 簡單雜湊（避免密碼明碼存放）---------- */
 function hash(str){
   let h = 5381;
   for(let i=0;i<str.length;i++){ h = ((h<<5)+h) + str.charCodeAt(i); h = h & 0xffffffff; }
   return String(h>>>0);
 }
 
-/* ---------- 資料存取 ---------- */
 const DB = {
   getCfg(){ return JSON.parse(localStorage.getItem('xiugu_cfg')||'{}'); },
   setCfg(c){ localStorage.setItem('xiugu_cfg', JSON.stringify(c)); },
@@ -24,16 +16,13 @@ const DB = {
   deleteRecord(id){ this.setRecords(this.getRecords().filter(x=>x.id!==id)); }
 };
 
-/* ---------- 小工具 ---------- */
 function $(id){ return document.getElementById(id); }
 function fmtMoney(n){ return Number(n||0).toLocaleString('en-US'); }
 function todayStr(){ const d=new Date(); return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0'); }
 function nowTime(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
 
-/* ============================================================
-   登入流程
-   ============================================================ */
+
 function initLogin(){
   const cfg = DB.getCfg();
   if(!cfg.pw){
@@ -113,9 +102,7 @@ function resetPw(){
   toast('密碼已重設'); closeForgot(); initLogin();
 }
 
-/* ============================================================
-   抽屜選單
-   ============================================================ */
+
 function openDrawer(){ $('drawer').classList.add('active'); $('drawerMask').classList.add('active'); }
 function closeDrawer(){ $('drawer').classList.remove('active'); $('drawerMask').classList.remove('active'); }
 
@@ -136,9 +123,6 @@ function nav(view){
   if(view==='month') renderMonth();
 }
 
-/* ============================================================
-   新增記錄
-   ============================================================ */
 let draft = { svcs:[], sign:'' };
 
 function viewAdd(){
@@ -206,9 +190,7 @@ function saveRecord(){
   nav('add');
 }
 
-/* ============================================================
-   手寫簽名 Canvas
-   ============================================================ */
+
 let sctx, sdrawing=false, shasInk=false, scanvas;
 function openSign(){
   $('signModal').classList.add('active');
@@ -242,9 +224,6 @@ function signDone(){
   $('signModal').classList.remove('active');
 }
 
-/* ============================================================
-   今日營業額
-   ============================================================ */
 function viewToday(){
   const t = todayStr();
   const recs = DB.getRecords().filter(r=>r.date===t);
@@ -277,9 +256,7 @@ function recCard(r){
   </div>`;
 }
 
-/* ============================================================
-   月結報表
-   ============================================================ */
+
 let mCur = new Date();
 function viewMonth(){
   return `<div class="body-pad">
@@ -326,9 +303,7 @@ function recCardFull(r){
   </div>`;
 }
 
-/* ============================================================
-   搜尋客人
-   ============================================================ */
+
 function viewSearch(){
   return `<div class="body-pad">
     <div class="sec-title"><span class="diamond" style="padding:0;">✦</span>搜尋客人</div>
@@ -364,9 +339,7 @@ function runSearch(){
   box.innerHTML = html;
 }
 
-/* ============================================================
-   記錄詳情 / 編輯 / 刪除
-   ============================================================ */
+
 function openRec(id){
   const r = DB.getRecords().find(x=>x.id===id);
   if(!r) return;
@@ -409,9 +382,7 @@ function saveEdit(id){
   nav(document.querySelector('.di.on').dataset.view||'today');
 }
 
-/* ============================================================
-   匯出 Excel
-   ============================================================ */
+
 function viewExport(){
   return `<div class="body-pad">
     <div class="sec-title"><span class="diamond" style="padding:0;">✦</span>匯出 Excel</div>
@@ -443,9 +414,7 @@ function doExport(){
   toast('已匯出');
 }
 
-/* ============================================================
-   設定
-   ============================================================ */
+
 function viewSettings(){
   const cfg = DB.getCfg();
   return `<div class="body-pad">
@@ -475,7 +444,7 @@ function changePw(){
 }
 function saveSheet(){ const c=DB.getCfg(); c.sheetUrl=$('stSheet').value.trim(); DB.setCfg(c); toast('已儲存'); }
 
-/* ---------- 同步到 Google Sheets（若已設定）---------- */
+
 function syncToSheets(rec){
   const c = DB.getCfg();
   if(!c.sheetUrl) return;
@@ -485,7 +454,5 @@ function syncToSheets(rec){
   }).catch(()=>{ /* 離線時靜默，資料仍存在本機 */ });
 }
 
-/* ============================================================
-   啟動
-   ============================================================ */
+
 initLogin();
