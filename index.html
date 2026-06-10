@@ -229,8 +229,7 @@ input,button,textarea,select{font-family:inherit;font-size:16px;}
       <div class="field"><label class="flabel">電子郵件 EMAIL</label><input class="finput" id="regEmail" type="email" placeholder="your@gmail.com" inputmode="email"></div>
       <div class="field"><label class="flabel">密碼 PASSWORD（至少6碼）</label><input class="finput" id="regPw" type="password" placeholder="設定密碼"></div>
       <div class="field"><label class="flabel">確認密碼</label><input class="finput" id="regPw2" type="password" placeholder="再輸入一次"></div>
-      <div class="auth-divider">— 身份 —</div>
-      <div class="invite-note">老闆直接註冊即可。<br>工讀生請向 Dana 索取邀請碼後填入。</div>
+      <div class="invite-note"><br>請向老闆索取邀請碼後填入。</div>
       <div class="field"><label class="flabel">邀請碼（工讀生填寫）</label><input class="finput" id="regInvite" placeholder="留空則為老闆帳號" style="letter-spacing:0.2em;"></div>
       <button class="btn-metal" onclick="doRegister()">建立帳號 CREATE</button>
     </div>
@@ -830,7 +829,7 @@ window.doExport=async function(){
 function viewInvite(){
   return `<div class="body-pad">
     <div class="sec-title">✦ &nbsp; 邀請碼管理</div>
-    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:20px;">產生邀請碼給工讀生，他們用邀請碼註冊後自動成為員工身份。</div>
+    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:20px;">產生邀請碼，使用後自動成為員工身份。</div>
     <button class="btn-metal" onclick="genInvite()">產生新邀請碼</button>
     <div class="sec-title" style="margin:28px 0 12px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">現有邀請碼</div>
     <div id="inviteList"><div class="empty">載入中...</div></div>
