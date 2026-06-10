@@ -337,11 +337,17 @@ onAuthStateChanged(auth, async user=>{
     currentUserEmail=user.email;
     // 讀取角色
     const snap = await getDoc(doc(db,'users',user.uid));
-    if(snap.exists()){
-      currentRole = snap.data().role || 'owner';
-    } else {
-      currentRole = 'owner';
-    }
+if(snap.exists()){
+  const data = snap.data();
+  if(data.disabled){
+    await signOut(auth);
+    toast('此帳號已被停用，請聯絡管理員');
+    return;
+  }
+  currentRole = data.role || 'owner';
+} else {
+  currentRole = 'owner';
+}
     buildNav();
     showScreen('app');
     nav('add');
@@ -854,7 +860,8 @@ async function loadInvites(){
 
 window.genInvite=async function(){
   // 產生6碼大寫英數邀請碼
-  const code=Math.random().toString(36).substring(2,8).toUpperCase();
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const code=Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
   const expires=new Date();expires.setDate(expires.getDate()+7); // 7天有效
   try{
     await setDoc(doc(db,'inviteCodes',code),{
