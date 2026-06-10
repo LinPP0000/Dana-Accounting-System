@@ -878,10 +878,6 @@ function viewSettings(){
     <div class="field"><label class="flabel">確認新密碼</label><input type="password" class="finput" id="stNewPw2" placeholder="再輸入一次"></div>
     <button class="btn-ghost" onclick="doChangePw()">更新密碼</button>
 
-    <div class="diamond-sep">— 更改信箱 —</div>
-    <div class="field"><label class="flabel">新信箱</label><input type="email" class="finput" id="stNewEmail" placeholder="new@gmail.com"></div>
-    <button class="btn-ghost" onclick="doChangeEmail()">更新信箱</button>
-
     <div class="diamond-sep">— 人員管理 —</div>
     <div id="staffList"><div class="empty">載入中...</div></div>
 
@@ -911,19 +907,6 @@ window.doChangePw = async function(){
   }
 };
 
-window.doChangeEmail = async function(){
-  const ne = $('stNewEmail').value.trim();
-  if(!ne||!ne.includes('@')){toast('請填寫有效信箱');return;}
-  try{
-    const {updateEmail} = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js");
-    await updateEmail(currentUser, ne);
-    toast('信箱已更新 ✦');
-    $('stNewEmail').value='';
-  }catch(e){
-    if(e.code==='auth/requires-recent-login')toast('請重新登入後再試');
-    else toast('更新失敗：'+e.message);
-  }
-};
 window.loadStaffList = async function(){
   const list=$('staffList');if(!list)return;
   try{
