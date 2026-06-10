@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="XIUGU">
+<title>XIUGU — 記帳</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Noto+Serif+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --metal:linear-gradient(118deg,#7a7a7a 0%,#a8a8a8 24%,#dcdcdc 42%,#ffffff 50%,#d4d4d4 60%,#a0a0a0 80%,#808080 100%);
+  --metal-text:linear-gradient(160deg,#777 0%,#fff 35%,#ccc 50%,#fff 65%,#888 100%);
+  --bg:#080808; --card:#131313; --border:#262626; --sidebar-w:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:#c8c8c8;font-family:'Noto Serif TC',serif;font-weight:400;width:100%;min-height:100vh;-webkit-font-smoothing:antialiased;font-size:16px;}
+input,button,textarea,select{font-family:inherit;font-size:16px;}
+.metal-text{background:var(--metal-text);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.en{font-family:'Playfair Display',serif;}
+
+.btn-metal{width:100%;height:52px;border:none;border-radius:8px;cursor:pointer;font-family:'Playfair Display',serif;font-weight:600;font-size:15px;letter-spacing:0.3em;padding-left:0.3em;color:#1a1a1a;background:var(--metal);box-shadow:0 0 14px rgba(220,220,220,0.12);transition:filter 0.2s;}
+.btn-metal:active{filter:brightness(1.1);}
+.btn-metal:disabled{background:#1e1e1e;color:#444;box-shadow:none;cursor:default;}
+.btn-ghost{background:transparent;border:0.5px solid #2e2e2e;color:#999;height:46px;border-radius:8px;font-size:14px;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;width:100%;}
+.btn-ghost:hover{border-color:#666;color:#ddd;}
+
+.field{margin-bottom:16px;}
+.flabel{font-size:11px;letter-spacing:0.25em;color:#888;margin-bottom:8px;display:block;}
+.finput{width:100%;background:#0e0e0e;border:0.5px solid #2e2e2e;border-radius:8px;height:48px;padding:0 14px;color:#e8e8e8;font-size:16px;outline:none;transition:border-color 0.2s;}
+.finput:focus{border-color:#666;}
+.finput::placeholder{color:#383838;}
+
+/* ====== 畫面 ====== */
+.screen{display:none;}
+.screen.active{display:flex;}
+
+/* ====== 載入畫面 ====== */
+#loading{min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+#loading .logo{font-family:'Playfair Display',serif;font-size:32px;letter-spacing:0.16em;font-weight:700;}
+#loading .dots{display:flex;gap:6px;}
+#loading .dot{width:6px;height:6px;border-radius:50%;background:#444;animation:pulse 1.2s ease-in-out infinite;}
+#loading .dot:nth-child(2){animation-delay:0.2s;}
+#loading .dot:nth-child(3){animation-delay:0.4s;}
+@keyframes pulse{0%,80%,100%{opacity:0.3;}40%{opacity:1;}}
+
+/* ====== 登入 ====== */
+#authScreen{min-height:100vh;align-items:center;justify-content:center;padding:24px;}
+.auth-card{width:100%;max-width:380px;}
+.auth-logo{text-align:center;margin-bottom:44px;}
+.auth-logo .lg{font-family:'Playfair Display',serif;font-size:36px;letter-spacing:0.16em;font-weight:700;}
+.auth-logo .sb{font-size:10px;letter-spacing:0.45em;color:#555;margin-top:8px;}
+.auth-logo .sep{color:#2a2a2a;font-size:10px;letter-spacing:0.3em;padding:14px 0;}
+.auth-tabs{display:flex;gap:0;margin-bottom:28px;border:0.5px solid #222;border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;height:44px;background:transparent;border:none;color:#666;font-size:13px;letter-spacing:0.12em;cursor:pointer;transition:all 0.2s;}
+.auth-tab.on{background:#181818;color:#e8e8e8;}
+.auth-panel{display:none;}
+.auth-panel.on{display:block;}
+.auth-link{text-align:center;margin-top:18px;font-size:12px;color:#555;letter-spacing:0.1em;cursor:pointer;transition:color 0.2s;}
+.auth-link:hover{color:#aaa;}
+.auth-divider{text-align:center;color:#2a2a2a;font-size:10px;letter-spacing:0.25em;padding:16px 0 8px;}
+.invite-note{font-size:11px;color:#666;letter-spacing:0.08em;line-height:1.7;margin-bottom:14px;padding:10px 14px;background:#0e0e0e;border-radius:8px;border:0.5px solid #222;}
+
+/* ====== APP 框架 ====== */
+#app{min-height:100vh;flex-direction:column;}
+.topbar{padding:16px 20px;border-bottom:0.5px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;background:var(--bg);position:sticky;top:0;z-index:20;}
+.topbar .ico{font-size:22px;color:#b0b0b0;cursor:pointer;background:none;border:none;width:32px;line-height:1;}
+.topbar .logo{font-family:'Playfair Display',serif;font-size:18px;letter-spacing:0.14em;color:#f0f0f0;font-weight:600;}
+.topbar .role-badge{font-size:9px;letter-spacing:0.2em;color:#555;border:0.5px solid #2a2a2a;padding:3px 8px;border-radius:4px;}
+
+.body-pad{padding:24px 20px;}
+.sec-title{font-size:14px;font-weight:600;color:#f0f0f0;letter-spacing:0.15em;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.diamond-sep{color:#2e2e2e;font-size:10px;letter-spacing:0.25em;text-align:center;padding:20px 0;}
+
+/* ====== 抽屜 ====== */
+.drawer-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:40;backdrop-filter:blur(2px);}
+.drawer-mask.active{display:block;}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:#0a0a0a;border-right:0.5px solid #1e1e1e;z-index:50;transform:translateX(-100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;}
+.drawer.active{transform:translateX(0);}
+.drawer .dh{padding:28px 22px 20px;border-bottom:0.5px solid #1a1a1a;}
+.drawer .dh .lg{font-family:'Playfair Display',serif;font-size:22px;letter-spacing:0.14em;color:#f2f2f2;font-weight:600;}
+.drawer .dh .sb{font-size:9px;letter-spacing:0.4em;color:#555;margin-top:6px;}
+.drawer .dh .role{font-size:10px;color:#666;margin-top:10px;letter-spacing:0.1em;}
+.drawer .items{padding:12px 10px;flex:1;overflow-y:auto;}
+.di{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:10px;cursor:pointer;color:#c0c0c0;font-size:14px;transition:all 0.15s;letter-spacing:0.05em;}
+.di .ic{font-size:18px;color:#888;width:22px;text-align:center;flex-shrink:0;}
+.di:hover{background:#141414;color:#e0e0e0;}
+.di.on{background:#161616;color:#fff;}
+.di.on .ic{color:#c0c0c0;}
+.drawer .div{height:0.5px;background:#1a1a1a;margin:6px 16px;}
+.drawer .ft{text-align:center;color:#2e2e2e;font-size:10px;letter-spacing:0.35em;padding:16px;}
+
+/* ====== 側邊欄 ====== */
+.sidebar{display:none;width:var(--sidebar-w);min-height:100vh;background:#0a0a0a;border-right:0.5px solid #1a1a1a;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar .sh{padding:32px 24px 22px;border-bottom:0.5px solid #1a1a1a;}
+.sidebar .sh .lg{font-family:'Playfair Display',serif;font-size:22px;letter-spacing:0.14em;color:#f2f2f2;font-weight:600;}
+.sidebar .sh .sb{font-size:9px;letter-spacing:0.4em;color:#555;margin-top:6px;}
+.sidebar .sh .role{font-size:10px;color:#666;margin-top:10px;letter-spacing:0.1em;}
+.sidebar .items{padding:14px 12px;flex:1;}
+.sidebar .ft{text-align:center;color:#2a2a2a;font-size:10px;letter-spacing:0.35em;padding:20px;}
+.main-area{flex:1;overflow-y:auto;min-height:100vh;}
+
+/* ====== 服務方框 ====== */
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.svc-box{height:52px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;cursor:pointer;background:#0e0e0e;border:0.5px solid #2a2a2a;transition:all 0.15s;}
+.svc-box .nm{color:#a0a0a0;font-size:14px;}
+.svc-box .ck{font-size:16px;color:transparent;}
+.svc-box:hover{border-color:#444;}
+.svc-box.sel{background:var(--metal);border-color:#bbb;}
+.svc-box.sel .nm{color:#1a1a1a;font-weight:600;}
+.svc-box.sel .ck{color:#1a1a1a;}
+
+/* ====== 簽名 ====== */
+.sign-prev{background:#f0f0f0;border-radius:8px;height:88px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;overflow:hidden;}
+.sign-prev .ph{color:#aaa;font-size:13px;letter-spacing:0.1em;}
+.sign-prev img{max-height:76px;max-width:90%;}
+.sign-prev .zo{position:absolute;bottom:7px;right:10px;font-size:15px;color:#aaa;}
+.sign-modal{display:none;position:fixed;inset:0;background:#080808;z-index:60;flex-direction:column;padding:20px;}
+.sign-modal.active{display:flex;}
+.sign-modal .hd{font-size:13px;color:#aaa;letter-spacing:0.2em;text-align:center;margin-bottom:14px;}
+.sign-canvas-wrap{flex:1;background:#f4f4f4;border-radius:10px;position:relative;overflow:hidden;}
+#signCanvas{position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;display:block;}
+.sign-hint{position:absolute;top:50%;left:0;right:0;text-align:center;color:#bbb;font-size:14px;pointer-events:none;transform:translateY(-50%);}
+.sign-btns{display:flex;gap:10px;margin-top:14px;}
+.sign-btns button{flex:1;height:46px;}
+.landscape-hint{display:none;position:fixed;inset:0;background:rgba(8,8,8,0.96);z-index:55;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.landscape-hint.show{display:flex;}
+.landscape-hint .hi{font-size:52px;}
+.landscape-hint .ht{font-size:14px;color:#777;letter-spacing:0.2em;text-align:center;line-height:2;}
+.landscape-hint .hs{font-size:12px;color:#444;cursor:pointer;margin-top:8px;letter-spacing:0.15em;}
+.landscape-hint .hs:hover{color:#999;}
+
+/* ====== 記錄卡 ====== */
+.rec{background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color 0.15s;}
+.rec:hover{border-color:#3a3a3a;}
+.rec .nm{color:#e8e8e8;font-size:15px;font-weight:500;}
+.rec .meta{color:#666;font-size:12px;margin-top:4px;}
+.rec .pr{font-family:'Playfair Display',serif;color:#d0d0d0;font-size:16px;flex-shrink:0;margin-left:12px;}
+
+/* ====== 數據卡 ====== */
+.stat-big{background:linear-gradient(130deg,#141414 0%,#202020 50%,#141414 100%);border:0.5px solid #2e2e2e;border-radius:14px;padding:24px 26px;position:relative;overflow:hidden;}
+.stat-big .lb{font-size:10px;letter-spacing:0.35em;color:#777;margin-bottom:10px;}
+.stat-big .num{font-family:'Playfair Display',serif;font-size:40px;font-weight:600;color:#fff;}
+.stat-big .cnt{font-size:12px;color:#666;margin-top:8px;}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.stat-sm{background:#0e0e0e;border:0.5px solid #222;border-radius:12px;padding:16px;}
+.stat-sm .lb{font-size:10px;letter-spacing:0.22em;color:#666;}
+.stat-sm .num{font-family:'Playfair Display',serif;font-size:22px;color:#e0e0e0;margin-top:6px;font-weight:500;}
+
+/* ====== 月份切換 ====== */
+.msel{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.msel .mtxt{font-family:'Playfair Display',serif;font-size:20px;color:#e8e8e8;}
+.mbtn{background:none;border:0.5px solid #252525;color:#777;width:38px;height:38px;border-radius:8px;font-size:18px;cursor:pointer;transition:all 0.2s;}
+.mbtn:hover{border-color:#666;color:#ccc;}
+.svc-stat{display:flex;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid #181818;font-size:14px;}
+.svc-stat .k{color:#888;}
+.svc-stat .v{color:#ddd;font-family:'Playfair Display',serif;}
+
+/* ====== 邀請碼 ====== */
+.invite-box{background:#0e0e0e;border:0.5px solid #2a2a2a;border-radius:10px;padding:16px;margin-bottom:12px;}
+.invite-code{font-family:'Playfair Display',serif;font-size:28px;letter-spacing:0.3em;color:#e8e8e8;text-align:center;padding:12px 0;}
+.invite-exp{font-size:11px;color:#666;text-align:center;letter-spacing:0.1em;}
+
+/* ====== Toast ====== */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(16px);background:#181818;border:0.5px solid #333;color:#e0e0e0;padding:12px 24px;border-radius:10px;font-size:13px;letter-spacing:0.12em;z-index:200;opacity:0;transition:all 0.28s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ====== Modal ====== */
+.modal-mask{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:70;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px);}
+.modal-mask.active{display:flex;}
+.modal{background:#0f0f0f;border:0.5px solid #2a2a2a;border-radius:16px;padding:26px;width:100%;max-width:360px;max-height:90vh;overflow-y:auto;}
+.modal .mt{font-size:15px;color:#f0f0f0;letter-spacing:0.1em;margin-bottom:18px;font-weight:600;}
+.modal .mtext{font-size:13px;color:#999;line-height:1.8;margin-bottom:18px;}
+.empty{text-align:center;color:#444;font-size:13px;letter-spacing:0.12em;padding:44px 0;}
+.search-result-meta{color:#666;font-size:11px;margin-left:8px;}
+.locked-msg{font-size:11px;color:#666;text-align:center;padding:8px 0;letter-spacing:0.08em;}
+
+/* ====== RWD ====== */
+@media (min-width:1024px),(min-width:768px) and (orientation:landscape){
+  #app{flex-direction:row;}
+  .topbar{display:none;}
+  .sidebar{display:flex;}
+  .drawer,.drawer-mask{display:none !important;}
+  .body-pad{padding:32px 40px;max-width:800px;}
+  .svc-grid{grid-template-columns:1fr 1fr 1fr;}
+}
+@media (min-width:640px) and (max-width:1023px) and (orientation:portrait){
+  .body-pad{padding:28px 36px;max-width:600px;margin:0 auto;}
+  .svc-grid{grid-template-columns:1fr 1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- 載入 -->
+<div class="screen active" id="loading">
+  <div class="logo metal-text">XIUGU</div>
+  <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+</div>
+
+<!-- 登入/註冊 -->
+<div class="screen" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="lg metal-text">XIUGU</div>
+      <div class="sb">HAIR STUDIO · TAOYUAN</div>
+      <div class="sep">✦ &nbsp; ✦ &nbsp; ✦</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab on" onclick="switchTab('login')">登入</button>
+      <button class="auth-tab" onclick="switchTab('register')">註冊</button>
+      <button class="auth-tab" onclick="switchTab('forgot')">忘記密碼</button>
+    </div>
+
+    <!-- 登入 -->
+    <div class="auth-panel on" id="panelLogin">
+      <div class="field"><label class="flabel">電子郵件 EMAIL</label><input class="finput" id="loginEmail" type="email" placeholder="your@gmail.com" inputmode="email"></div>
+      <div class="field"><label class="flabel">密碼 PASSWORD</label><input class="finput" id="loginPw" type="password" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-metal" onclick="doLogin()">登入 LOGIN</button>
+    </div>
+
+    <!-- 註冊 -->
+    <div class="auth-panel" id="panelRegister">
+      <div class="field"><label class="flabel">電子郵件 EMAIL</label><input class="finput" id="regEmail" type="email" placeholder="your@gmail.com" inputmode="email"></div>
+      <div class="field"><label class="flabel">密碼 PASSWORD（至少6碼）</label><input class="finput" id="regPw" type="password" placeholder="設定密碼"></div>
+      <div class="field"><label class="flabel">確認密碼</label><input class="finput" id="regPw2" type="password" placeholder="再輸入一次"></div>
+      <div class="auth-divider">— 身份 —</div>
+      <div class="invite-note">老闆直接註冊即可。<br>工讀生請向 Dana 索取邀請碼後填入。</div>
+      <div class="field"><label class="flabel">邀請碼（工讀生填寫）</label><input class="finput" id="regInvite" placeholder="留空則為老闆帳號" style="letter-spacing:0.2em;"></div>
+      <button class="btn-metal" onclick="doRegister()">建立帳號 CREATE</button>
+    </div>
+
+    <!-- 忘記密碼 -->
+    <div class="auth-panel" id="panelForgot">
+      <div class="field"><label class="flabel">電子郵件 EMAIL</label><input class="finput" id="forgotEmail" type="email" placeholder="your@gmail.com" inputmode="email"></div>
+      <button class="btn-metal" onclick="doForgot()">寄出重設連結</button>
+      <div class="auth-link" onclick="switchTab('login')" style="margin-top:16px;">返回登入</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP 主框架 -->
+<div class="screen" id="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="sh">
+      <div class="lg metal-text">XIUGU</div>
+      <div class="sb">HAIR STUDIO</div>
+      <div class="role" id="sideRole"></div>
+    </div>
+    <div class="items" id="sideItems"></div>
+    <div class="ft">✦ &nbsp; ✦ &nbsp; ✦</div>
+  </nav>
+  <div class="main-area">
+    <div class="topbar">
+      <button class="ico" onclick="openDrawer()">&#9776;</button>
+      <span class="logo">XIUGU</span>
+      <span class="role-badge" id="topRole"></span>
+    </div>
+    <div id="viewArea"></div>
+  </div>
+</div>
+
+<!-- 抽屜 -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <div class="lg metal-text">XIUGU</div>
+    <div class="sb">HAIR STUDIO</div>
+    <div class="role" id="drawerRole"></div>
+  </div>
+  <div class="items" id="drawerItems"></div>
+  <div class="ft">✦ &nbsp; ✦ &nbsp; ✦</div>
+</div>
+
+<!-- 簽名 -->
+<div class="landscape-hint" id="landscapeHint">
+  <div class="hi">↺</div>
+  <div class="ht">建議橫向簽名<br>畫面更大更好簽</div>
+  <div class="hs" onclick="skipLandscape()">直接簽名 →</div>
+</div>
+<div class="sign-modal" id="signModal">
+  <div class="hd">請在框內簽名 SIGNATURE</div>
+  <div class="sign-canvas-wrap" id="signWrap">
+    <canvas id="signCanvas"></canvas>
+    <div class="sign-hint" id="signHint">請在此處簽名</div>
+  </div>
+  <div class="sign-btns">
+    <button class="btn-ghost" onclick="signClear()">重簽</button>
+    <button class="btn-ghost" onclick="signCancel()">返回</button>
+    <button class="btn-metal" style="flex:1.5;" onclick="signDone()">完成</button>
+  </div>
+</div>
+
+<!-- 記錄詳情 Modal -->
+<div class="modal-mask" id="recMask"><div class="modal" id="recModalBody"></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCcUpRWbd4FhG3hRhDx3jROFUJEHG90mh4",
+  authDomain: "xiugu-accounting.firebaseapp.com",
+  projectId: "xiugu-accounting",
+  storageBucket: "xiugu-accounting.firebasestorage.app",
+  messagingSenderId: "925030851611",
+  appId: "1:925030851611:web:a0f00db3ecb294760c44be"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const SVCS = ['剪髮','染髮','燙髮','護髮','頭皮護理','局部燙','局部染'];
+let currentUser = null;
+let currentRole = null; // 'owner' | 'staff'
+let currentUserEmail = '';
+
+/* ===== 工具 ===== */
+function $(id){return document.getElementById(id);}
+function fmtMoney(n){return Number(n||0).toLocaleString('en-US');}
+function todayStr(){const d=new Date();return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');}
+function nowTime(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
+
+/* ===== Auth 狀態 ===== */
+onAuthStateChanged(auth, async user=>{
+  if(user){
+    currentUser=user;
+    currentUserEmail=user.email;
+    // 讀取角色
+    const snap = await getDoc(doc(db,'users',user.uid));
+    if(snap.exists()){
+      currentRole = snap.data().role || 'owner';
+    } else {
+      currentRole = 'owner';
+    }
+    buildNav();
+    showScreen('app');
+    nav('add');
+  } else {
+    currentUser=null; currentRole=null;
+    showScreen('authScreen');
+    switchTab('login');
+  }
+});
+
+/* ===== 登入頁 Tab ===== */
+window.switchTab = function(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>{
+    t.classList.toggle('on',['login','register','forgot'][i]===tab);
+  });
+  document.querySelectorAll('.auth-panel').forEach(p=>p.classList.remove('on'));
+  $('panel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('on');
+};
+
+/* ===== 登入 ===== */
+window.doLogin = async function(){
+  const email=$('loginEmail').value.trim();
+  const pw=$('loginPw').value;
+  if(!email||!pw){toast('請填寫帳號和密碼');return;}
+  try{
+    await signInWithEmailAndPassword(auth,email,pw);
+  }catch(e){
+    if(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')toast('帳號或密碼錯誤');
+    else if(e.code==='auth/user-not-found')toast('帳號不存在');
+    else toast('登入失敗：'+e.message);
+  }
+};
+
+/* ===== 註冊 ===== */
+window.doRegister = async function(){
+  const email=$('regEmail').value.trim();
+  const pw=$('regPw').value;
+  const pw2=$('regPw2').value;
+  const invite=$('regInvite').value.trim().toUpperCase();
+  if(!email||!pw){toast('請填寫信箱和密碼');return;}
+  if(pw!==pw2){toast('兩次密碼不一致');return;}
+  if(pw.length<6){toast('密碼至少6碼');return;}
+
+  let role='owner';
+  // 有邀請碼 → 驗證
+  if(invite){
+    const invSnap=await getDoc(doc(db,'inviteCodes',invite));
+    if(!invSnap.exists()){toast('邀請碼無效');return;}
+    const inv=invSnap.data();
+    if(inv.used){toast('邀請碼已使用');return;}
+    if(inv.expiresAt && inv.expiresAt.toDate()<new Date()){toast('邀請碼已過期');return;}
+    role='staff';
+    // 標記使用
+    await updateDoc(doc(db,'inviteCodes',invite),{used:true,usedBy:email,usedAt:serverTimestamp()});
+  }
+
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,pw);
+    await setDoc(doc(db,'users',cred.user.uid),{email,role,createdAt:serverTimestamp()});
+    toast('帳號建立成功 ✦');
+  }catch(e){
+    if(e.code==='auth/email-already-in-use')toast('此信箱已註冊');
+    else toast('註冊失敗：'+e.message);
+  }
+};
+
+/* ===== 忘記密碼 ===== */
+window.doForgot = async function(){
+  const email=$('forgotEmail').value.trim();
+  if(!email){toast('請填寫信箱');return;}
+  try{
+    await sendPasswordResetEmail(auth,email);
+    toast('重設連結已寄出，請檢查信箱');
+    switchTab('login');
+  }catch(e){
+    toast('寄送失敗，請確認信箱');
+  }
+};
+
+/* ===== 登出 ===== */
+window.doLogout = async function(){
+  closeDrawer();
+  await signOut(auth);
+};
+
+/* ===== 建立導覽 ===== */
+function buildNav(){
+  const isOwner = currentRole==='owner';
+  const roleText = isOwner ? '👑 老闆' : '👤 工讀生';
+  $('topRole').textContent = isOwner ? '老闆' : '工讀生';
+  $('drawerRole').textContent = roleText + ' · ' + currentUserEmail;
+  $('sideRole').textContent = roleText + ' · ' + currentUserEmail;
+
+  const items = [
+    {view:'add', ic:'＋', label:'新增記錄', always:true},
+    {view:'today_clients', ic:'◈', label:'今日客戶', always:true},
+    {view:'search', ic:'⌕', label:'搜尋客人', always:true},
+    {view:'today', ic:'$', label:'今日營業額', ownerOnly:true},
+    {view:'month', ic:'▦', label:'月結報表', ownerOnly:true},
+    {view:'export', ic:'⤓', label:'匯出 Excel', ownerOnly:true},
+    {view:'invite', ic:'✉', label:'邀請碼管理', ownerOnly:true},
+    {view:'settings', ic:'⚙', label:'設定', ownerOnly:true},
+  ];
+
+  const makeItems = (logout=false) => {
+    let html = items.filter(i=>i.always||(i.ownerOnly&&isOwner))
+      .map(i=>`<div class="di" data-view="${i.view}" onclick="nav('${i.view}')"><span class="ic">${i.ic}</span>${i.label}</div>`).join('');
+    html += '<div class="div"></div>';
+    html += `<div class="di" onclick="doLogout()"><span class="ic">⎋</span>登出</div>`;
+    return html;
+  };
+
+  $('drawerItems').innerHTML = makeItems();
+  $('sideItems').innerHTML = makeItems();
+}
+
+/* ===== 導覽 ===== */
+window.nav = function(view){
+  closeDrawer();
+  document.querySelectorAll('.di[data-view]').forEach(d=>d.classList.toggle('on',d.dataset.view===view));
+  const area=$('viewArea');
+  const isOwner=currentRole==='owner';
+  if(view==='add') area.innerHTML=viewAdd();
+  else if(view==='today_clients') area.innerHTML=viewTodayClients();
+  else if(view==='today'&&isOwner) area.innerHTML=viewToday();
+  else if(view==='month'&&isOwner) area.innerHTML=viewMonth();
+  else if(view==='search') area.innerHTML=viewSearch();
+  else if(view==='export'&&isOwner) area.innerHTML=viewExport();
+  else if(view==='invite'&&isOwner) area.innerHTML=viewInvite();
+  else if(view==='settings'&&isOwner) area.innerHTML=viewSettings();
+  else area.innerHTML='<div class="body-pad"><div class="empty">無此頁面</div></div>';
+  window.scrollTo(0,0);
+  if(view==='add') afterAddRender();
+  if(view==='month') renderMonth();
+  if(view==='today_clients') loadTodayClients();
+  if(view==='today') loadToday();
+  if(view==='invite') loadInvites();
+};
+
+window.openDrawer=function(){$('drawer').classList.add('active');$('drawerMask').classList.add('active');}
+window.closeDrawer=function(){$('drawer').classList.remove('active');$('drawerMask').classList.remove('active');}
+
+/* ===== 新增記錄 ===== */
+let draft={svcs:[],sign:''};
+
+function viewAdd(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 新增記錄</div>
+    <div class="field"><label class="flabel">客人姓名</label><input class="finput" id="inName" placeholder="輸入姓名"></div>
+    <div class="field"><label class="flabel">電話</label><input class="finput" id="inPhone" placeholder="0900-000-000" inputmode="tel"></div>
+    <div class="field"><label class="flabel">服務項目（可複選）</label><div class="svc-grid" id="svcGrid"></div></div>
+    <div style="display:flex;gap:14px;">
+      ${currentRole==='owner'?'<div class="field" style="flex:1.4;"><label class="flabel">價格</label><input class="finput en" id="inPrice" placeholder="NT$ 0" inputmode="numeric"></div>':''}
+      <div class="field" style="flex:1;"><label class="flabel">日期</label><input class="finput" id="inDate" type="date"></div>
+    </div>
+    <div class="field">
+      <label class="flabel">客人簽名（點擊放大）</label>
+      <div class="sign-prev" id="signPrev" onclick="openSign()"><span class="ph">點此簽名</span><span class="zo">⛶</span></div>
+    </div>
+    <button class="btn-metal" onclick="saveRecord()">SAVE &nbsp; 儲存</button>
+  </div>`;
+}
+
+function afterAddRender(){
+  draft={svcs:[],sign:''};
+  $('svcGrid').innerHTML=SVCS.map(s=>`<div class="svc-box" data-s="${s}" onclick="toggleSvc('${s}')"><span class="nm">${s}</span><span class="ck">✓</span></div>`).join('');
+  const d=new Date();
+  $('inDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+window.toggleSvc=function(s){
+  const i=draft.svcs.indexOf(s);
+  if(i>=0)draft.svcs.splice(i,1);else draft.svcs.push(s);
+  document.querySelector(`.svc-box[data-s="${s}"]`).classList.toggle('sel');
+};
+
+window.saveRecord=async function(){
+  const name=$('inName').value.trim();
+  const phone=$('inPhone').value.trim();
+  const priceEl=$('inPrice');
+  const price=priceEl?parseInt((priceEl.value||'').replace(/[^0-9]/g,''))||0:0;
+  const dateInput=$('inDate').value;
+  if(!name){toast('請填寫姓名');return;}
+  if(draft.svcs.length===0){toast('請選擇服務項目');return;}
+  if(currentRole==='owner'&&!price){toast('請填寫價格');return;}
+  const date=dateInput?dateInput.replace(/-/g,'/'):todayStr();
+  const rec={
+    name,phone,price,services:draft.svcs,date,time:nowTime(),
+    sign:draft.sign,createdAt:serverTimestamp(),
+    createdBy:currentUser.uid,createdByEmail:currentUserEmail
+  };
+  try{
+    await addDoc(collection(db,'records'),rec);
+    toast('已儲存 ✦');nav('add');
+  }catch(e){toast('儲存失敗：'+e.message);}
+};
+
+/* ===== 簽名 ===== */
+let sctx,sdrawing=false,shasInk=false,scanvas,_signSkipped=false;
+
+window.openSign=function(){
+  const isMobile=window.innerWidth<768;
+  const isPortrait=window.innerHeight>window.innerWidth;
+  if(isMobile&&isPortrait&&!_signSkipped){$('landscapeHint').classList.add('show');return;}
+  _signSkipped=false;_doOpenSign();
+};
+window.skipLandscape=function(){$('landscapeHint').classList.remove('show');_signSkipped=true;_doOpenSign();};
+window.addEventListener('orientationchange',()=>{
+  if($('landscapeHint').classList.contains('show')){
+    setTimeout(()=>{$('landscapeHint').classList.remove('show');_doOpenSign();},400);
+  }
+});
+
+function _doOpenSign(){
+  $('signModal').classList.add('active');
+  scanvas=$('signCanvas');
+  const wrap=$('signWrap');
+  const rect=wrap.getBoundingClientRect();
+  // 關鍵：用 getBoundingClientRect 取得真實像素大小
+  scanvas.width=Math.floor(rect.width);
+  scanvas.height=Math.floor(rect.height);
+  sctx=scanvas.getContext('2d');
+  sctx.lineWidth=3;sctx.lineCap='round';sctx.lineJoin='round';sctx.strokeStyle='#111';
+  shasInk=false;$('signHint').style.display='block';
+  bindSign();
+}
+
+function bindSign(){
+  // 關鍵：每次重新取得 canvas 的 bounding rect，確保座標正確
+  const getPos=e=>{
+    const r=scanvas.getBoundingClientRect();
+    const scaleX=scanvas.width/r.width;
+    const scaleY=scanvas.height/r.height;
+    const p=e.touches?e.touches[0]:e;
+    return{x:(p.clientX-r.left)*scaleX, y:(p.clientY-r.top)*scaleY};
+  };
+  const start=e=>{e.preventDefault();sdrawing=true;shasInk=true;$('signHint').style.display='none';const{x,y}=getPos(e);sctx.beginPath();sctx.moveTo(x,y);};
+  const move=e=>{if(!sdrawing)return;e.preventDefault();const{x,y}=getPos(e);sctx.lineTo(x,y);sctx.stroke();};
+  const end=()=>{sdrawing=false;};
+  scanvas.onmousedown=start;scanvas.onmousemove=move;scanvas.onmouseup=end;scanvas.onmouseleave=end;
+  scanvas.ontouchstart=start;scanvas.ontouchmove=move;scanvas.ontouchend=end;
+}
+
+window.signClear=function(){if(sctx)sctx.clearRect(0,0,scanvas.width,scanvas.height);shasInk=false;$('signHint').style.display='block';};
+window.signCancel=function(){$('signModal').classList.remove('active');};
+window.signDone=function(){
+  if(!shasInk){toast('尚未簽名');return;}
+  draft.sign=scanvas.toDataURL('image/png');
+  $('signPrev').innerHTML=`<img src="${draft.sign}"><span class="zo">⛶</span>`;
+  $('signModal').classList.remove('active');
+};
+
+/* ===== 今日客戶（老闆+工讀生都能看，但無金額）===== */
+function viewTodayClients(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 今日客戶</div>
+    <div id="todayClientList"><div class="empty">載入中...</div></div>
+  </div>`;
+}
+
+async function loadTodayClients(){
+  const t=todayStr();
+  try{
+    const q=query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    const list=$('todayClientList');
+    if(!list)return;
+    if(snap.empty){list.innerHTML='<div class="empty">今日尚無記錄</div>';return;}
+    list.innerHTML=snap.docs.map(d=>{
+      const r={id:d.id,...d.data()};
+      return `<div class="rec" onclick="openRec('${r.id}')">
+        <div><div class="nm">${r.name}</div><div class="meta">${r.services.join('・')}　${r.time}　${r.sign?'✍️':''}</div></div>
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);}
+}
+
+/* ===== 今日營業額（老闆限定）===== */
+function viewToday(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 今日營業額</div>
+    <div id="todayBody"><div class="empty">載入中...</div></div>
+  </div>`;
+}
+
+async function loadToday(){
+  const t=todayStr();
+  const month=t.slice(0,7);
+  try{
+    const [daySnap,monthSnap]=await Promise.all([
+      getDocs(query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'records'),where('date','>=',month+'/01')))
+    ]);
+    const recs=daySnap.docs.map(d=>({id:d.id,...d.data()}));
+    const mRecs=monthSnap.docs.map(d=>d.data());
+    const total=recs.reduce((s,r)=>s+(r.price||0),0);
+    const mTotal=mRecs.reduce((s,r)=>s+(r.price||0),0);
+    const body=$('todayBody');
+    if(!body)return;
+    body.innerHTML=`
+      <div class="stat-big">
+        <div class="lb">TODAY · ${t.slice(5)}</div>
+        <div class="num">NT$ ${fmtMoney(total)}</div>
+        <div class="cnt">今日 ${recs.length} 筆服務</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-sm"><div class="lb">本月累計</div><div class="num">NT$ ${fmtMoney(mTotal)}</div></div>
+        <div class="stat-sm"><div class="lb">本月筆數</div><div class="num">${mRecs.length}</div></div>
+      </div>
+      <div class="sec-title" style="margin:28px 0 12px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">今日記錄</div>
+      ${recs.length?recs.map(r=>recCard(r)).join(''):'<div class="empty">今日尚無記錄</div>'}`;
+  }catch(e){console.error(e);}
+}
+
+function recCard(r){
+  return `<div class="rec" onclick="openRec('${r.id}')">
+    <div><div class="nm">${r.name}</div><div class="meta">${r.services.join('・')}　${r.time}</div></div>
+    <div class="pr">$${fmtMoney(r.price)}</div>
+  </div>`;
+}
+
+/* ===== 月結報表 ===== */
+let mCur=new Date();
+function viewMonth(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 月結報表</div>
+    <div class="msel"><button class="mbtn" onclick="mPrev()">‹</button><span class="mtxt" id="mTxt"></span><button class="mbtn" onclick="mNext()">›</button></div>
+    <div id="mBody"><div class="empty">載入中...</div></div>
+  </div>`;
+}
+window.mPrev=function(){mCur.setMonth(mCur.getMonth()-1);renderMonth();}
+window.mNext=function(){mCur.setMonth(mCur.getMonth()+1);renderMonth();}
+
+async function renderMonth(){
+  const y=mCur.getFullYear(),m=mCur.getMonth()+1;
+  const key=y+'/'+String(m).padStart(2,'0');
+  const mTxt=$('mTxt');if(mTxt)mTxt.textContent=y+'.'+String(m).padStart(2,'0');
+  try{
+    const snap=await getDocs(query(collection(db,'records'),where('date','>=',key+'/01'),where('date','<=',key+'/31'),orderBy('date','desc')));
+    const recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const total=recs.reduce((s,r)=>s+(r.price||0),0);
+    const svcCount={};
+    recs.forEach(r=>r.services.forEach(s=>{svcCount[s]=(svcCount[s]||0)+1;}));
+    const svcRows=Object.keys(svcCount).sort((a,b)=>svcCount[b]-svcCount[a])
+      .map(s=>`<div class="svc-stat"><span class="k">${s}</span><span class="v">${svcCount[s]} 次</span></div>`).join('')
+      ||'<div class="empty">本月無記錄</div>';
+    const body=$('mBody');if(!body)return;
+    body.innerHTML=`
+      <div class="stat-big">
+        <div class="lb">MONTHLY · ${key.replace('/','.')}</div>
+        <div class="num">NT$ ${fmtMoney(total)}</div>
+        <div class="cnt">共 ${recs.length} 筆服務</div>
+      </div>
+      <div class="sec-title" style="margin:26px 0 8px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">服務項目統計</div>
+      ${svcRows}
+      <div class="sec-title" style="margin:26px 0 12px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">本月明細</div>
+      ${recs.length?recs.map(r=>`<div class="rec" onclick="openRec('${r.id}')">
+        <div><div class="nm">${r.name}</div><div class="meta">${r.date.slice(5)} ${r.time}　${r.services.join('・')}</div></div>
+        <div class="pr">$${fmtMoney(r.price)}</div></div>`).join(''):''}`;
+  }catch(e){console.error(e);}
+}
+
+/* ===== 搜尋 ===== */
+function viewSearch(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 搜尋客人</div>
+    <div class="field"><input class="finput" id="searchIn" placeholder="輸入姓名或電話" oninput="runSearch()"></div>
+    <div id="searchResult"><div class="empty">輸入關鍵字開始搜尋</div></div>
+  </div>`;
+}
+
+window.runSearch=async function(){
+  const q=$('searchIn').value.trim();
+  const box=$('searchResult');
+  if(!q){box.innerHTML='<div class="empty">輸入關鍵字開始搜尋</div>';return;}
+  try{
+    const snap=await getDocs(collection(db,'records'));
+    const recs=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(r=>(r.name||'').includes(q)||(r.phone||'').includes(q));
+    if(!recs.length){box.innerHTML='<div class="empty">找不到符合的記錄</div>';return;}
+    const byName={};
+    recs.forEach(r=>{const k=r.name+'|'+(r.phone||'');(byName[k]=byName[k]||[]).push(r);});
+    const isOwner=currentRole==='owner';
+    box.innerHTML=Object.keys(byName).map(k=>{
+      const list=byName[k];const[nm,ph]=k.split('|');
+      const sum=list.reduce((s,r)=>s+(r.price||0),0);
+      return `<div style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+          <div><span style="color:#f0f0f0;font-size:16px;font-weight:500;">${nm}</span><span class="search-result-meta">${ph||''}</span></div>
+          ${isOwner?`<div style="font-size:11px;color:#666;">累計 <span class="en" style="color:#bbb;">$${fmtMoney(sum)}</span> · ${list.length}次</div>`:`<div style="font-size:11px;color:#666;">${list.length}次</div>`}
+        </div>
+        ${list.map(r=>`<div class="rec" onclick="openRec('${r.id}')">
+          <div><div class="nm">${r.name}</div><div class="meta">${r.date.slice(5)} ${r.time}　${r.services.join('・')}</div></div>
+          ${isOwner?`<div class="pr">$${fmtMoney(r.price)}</div>`:''}
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);}
+};
+
+/* ===== 記錄詳情 ===== */
+window.openRec=async function(id){
+  const snap=await getDoc(doc(db,'records',id));
+  if(!snap.exists())return;
+  const r={id:snap.id,...snap.data()};
+  const isOwner=currentRole==='owner';
+  // 30分鐘內可編輯
+  const canEdit=isOwner||(r.createdBy===currentUser.uid&&r.createdAt&&(new Date()-r.createdAt.toDate())<30*60*1000);
+  $('recMask').classList.add('active');
+  $('recModalBody').innerHTML=`
+    <div class="mt">${r.name}<span class="search-result-meta">${r.date} ${r.time}</span></div>
+    <div class="svc-stat"><span class="k">電話</span><span class="v" style="font-family:inherit;color:#ddd;">${r.phone||'—'}</span></div>
+    <div class="svc-stat"><span class="k">服務</span><span class="v" style="font-family:inherit;color:#ddd;">${r.services.join('、')}</span></div>
+    ${isOwner?`<div class="svc-stat"><span class="k">價格</span><span class="v">NT$ ${fmtMoney(r.price)}</span></div>`:''}
+    ${r.sign?`<div style="margin-top:16px;"><div class="flabel">簽名</div><div style="background:#f0f0f0;border-radius:8px;padding:10px;text-align:center;"><img src="${r.sign}" style="max-height:70px;max-width:100%;"></div></div>`:''}
+    <div style="display:flex;gap:10px;margin-top:22px;">
+      ${canEdit?`<button class="btn-ghost" style="flex:1;" onclick="editRec('${r.id}')">編輯</button>`:''}
+      ${isOwner?`<button class="btn-ghost" style="flex:1;color:#c66;border-color:#3a1a1a;" onclick="delRec('${r.id}')">刪除</button>`:''}
+    </div>
+    ${!canEdit&&!isOwner?'<div class="locked-msg">⏱ 僅可編輯30分鐘內的記錄</div>':''}
+    <button class="btn-ghost" style="margin-top:10px;" onclick="closeRec()">關閉</button>`;
+};
+window.closeRec=function(){$('recMask').classList.remove('active');};
+window.delRec=async function(id){
+  if(!confirm('確定要刪除這筆記錄嗎？'))return;
+  await deleteDoc(doc(db,'records',id));
+  closeRec();toast('已刪除');
+  const cur=document.querySelector('.di.on');nav(cur?cur.dataset.view:'today_clients');
+};
+window.editRec=async function(id){
+  const snap=await getDoc(doc(db,'records',id));
+  const r={id:snap.id,...snap.data()};
+  const isOwner=currentRole==='owner';
+  $('recModalBody').innerHTML=`
+    <div class="mt">編輯記錄</div>
+    <div class="field"><label class="flabel">姓名</label><input class="finput" id="eName" value="${r.name}"></div>
+    <div class="field"><label class="flabel">電話</label><input class="finput" id="ePhone" value="${r.phone||''}"></div>
+    ${isOwner?`<div class="field"><label class="flabel">價格</label><input class="finput en" id="ePrice" value="${r.price}" inputmode="numeric"></div>`:''}
+    <button class="btn-metal" onclick="saveEdit('${r.id}')">儲存修改</button>
+    <button class="btn-ghost" style="margin-top:10px;" onclick="openRec('${r.id}')">返回</button>`;
+};
+window.saveEdit=async function(id){
+  const priceEl=$('ePrice');
+  const patch={name:$('eName').value.trim(),phone:$('ePhone').value.trim()};
+  if(priceEl)patch.price=parseInt((priceEl.value||'').replace(/[^0-9]/g,''))||0;
+  await updateDoc(doc(db,'records',id),patch);
+  closeRec();toast('已更新');
+  const cur=document.querySelector('.di.on');nav(cur?cur.dataset.view:'today_clients');
+};
+
+/* ===== 匯出 ===== */
+function viewExport(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 匯出 Excel</div>
+    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:22px;">把記錄匯出成 Excel 檔，可存到手機或上傳雲端備份。</div>
+    <div class="field"><label class="flabel">範圍</label>
+      <select class="finput" id="expRange">
+        <option value="all">全部記錄</option>
+        <option value="month">本月</option>
+      </select>
+    </div>
+    <button class="btn-metal" onclick="doExport()">匯出 EXCEL</button>
+  </div>`;
+}
+window.doExport=async function(){
+  const range=$('expRange').value;
+  let snap;
+  if(range==='month'){
+    const k=todayStr().slice(0,7);
+    snap=await getDocs(query(collection(db,'records'),where('date','>=',k+'/01'),orderBy('date','desc')));
+  } else {
+    snap=await getDocs(query(collection(db,'records'),orderBy('date','desc')));
+  }
+  if(snap.empty){toast('沒有資料可匯出');return;}
+  const rows=snap.docs.map(d=>{const r=d.data();return{日期:r.date,時間:r.time,姓名:r.name,電話:r.phone||'',服務項目:r.services.join('、'),價格:r.price,已簽名:r.sign?'是':'否'};});
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:8},{wch:10},{wch:14},{wch:18},{wch:10},{wch:8}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'XIUGU 記錄');
+  XLSX.writeFile(wb,`XIUGU_記錄_${todayStr().replace(/\//g,'')}.xlsx`);
+  toast('已匯出');
+};
+
+/* ===== 邀請碼管理 ===== */
+function viewInvite(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 邀請碼管理</div>
+    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:20px;">產生邀請碼給工讀生，他們用邀請碼註冊後自動成為員工身份。</div>
+    <button class="btn-metal" onclick="genInvite()">產生新邀請碼</button>
+    <div class="sec-title" style="margin:28px 0 12px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">現有邀請碼</div>
+    <div id="inviteList"><div class="empty">載入中...</div></div>
+  </div>`;
+}
+
+async function loadInvites(){
+  const list=$('inviteList');if(!list)return;
+  try{
+    const snap=await getDocs(collection(db,'inviteCodes'));
+    if(snap.empty){list.innerHTML='<div class="empty">尚無邀請碼</div>';return;}
+    list.innerHTML=snap.docs.map(d=>{
+      const inv=d.data();
+      const exp=inv.expiresAt?inv.expiresAt.toDate().toLocaleDateString('zh-TW'):'—';
+      const status=inv.used?`已使用（${inv.usedBy||''}）`:'未使用';
+      return `<div class="invite-box">
+        <div class="invite-code">${d.id}</div>
+        <div class="invite-exp">到期：${exp}　狀態：${status}</div>
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);}
+}
+
+window.genInvite=async function(){
+  // 產生6碼大寫英數邀請碼
+  const code=Math.random().toString(36).substring(2,8).toUpperCase();
+  const expires=new Date();expires.setDate(expires.getDate()+7); // 7天有效
+  try{
+    await setDoc(doc(db,'inviteCodes',code),{
+      used:false,createdBy:currentUser.uid,
+      createdAt:serverTimestamp(),
+      expiresAt:expires
+    });
+    toast('邀請碼已產生：'+code);
+    loadInvites();
+  }catch(e){toast('產生失敗：'+e.message);}
+};
+
+/* ===== 設定 ===== */
+function viewSettings(){
+  return `<div class="body-pad">
+    <div class="sec-title">✦ &nbsp; 設定</div>
+    <div style="color:#888;font-size:13px;line-height:1.9;margin-bottom:20px;">登入帳號：${currentUserEmail}</div>
+    <div class="diamond-sep">— 轉移給 Dana —</div>
+    <div style="color:#777;font-size:12px;line-height:1.8;margin-bottom:16px;">將 Dana 的 Google 帳號加為管理員後，你可以退出。在 Firebase Console → 專案設定 → 成員 → 新增成員。</div>
+    <div class="diamond-sep">✦ &nbsp; ✦ &nbsp; ✦</div>
+    <button class="btn-ghost" onclick="doLogout()" style="color:#c66;border-color:#3a1a1a;">登出</button>
+  </div>`;
+}
+
+</script>
+</body>
+</html>
