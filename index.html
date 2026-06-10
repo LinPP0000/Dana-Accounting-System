@@ -430,8 +430,8 @@ window.doLogout = async function(){
 /* ===== 建立導覽 ===== */
 function buildNav(){
   const isOwner = currentRole==='owner';
-  const roleText = isOwner ? '👑 老闆' : '👤 工讀生';
-  $('topRole').textContent = isOwner ? '老闆' : '工讀生';
+  const roleText = isOwner ? '👑 管理員' : '👤 員工';
+  $('topRole').textContent = isOwner ? '管理員' : '員工';
   $('drawerRole').textContent = roleText + ' · ' + currentUserEmail;
   $('sideRole').textContent = roleText + ' · ' + currentUserEmail;
 
@@ -594,7 +594,7 @@ window.signDone=function(){
   $('signModal').classList.remove('active');
 };
 
-/* ===== 今日客戶（老闆+工讀生都能看，但無金額）===== */
+/* ===== 今日客戶===== */
 function viewTodayClients(){
   return `<div class="body-pad">
     <div class="sec-title">✦ &nbsp; 今日客戶</div>
@@ -619,7 +619,7 @@ async function loadTodayClients(){
   }catch(e){console.error(e);}
 }
 
-/* ===== 今日營業額（老闆限定）===== */
+/* ===== 今日營業額===== */
 function viewToday(){
   return `<div class="body-pad">
     <div class="sec-title">✦ &nbsp; 今日營業額</div>
@@ -912,7 +912,7 @@ window.loadStaffList = async function(){
   try{
     const snap=await getDocs(collection(db,'users'));
     const users=snap.docs.map(d=>({id:d.id,...d.data()})).filter(u=>u.role==='staff');
-    if(!users.length){list.innerHTML='<div class="empty">目前沒有工讀生帳號</div>';return;}
+    if(!users.length){list.innerHTML='<div class="empty">目前沒有員工帳號</div>';return;}
     list.innerHTML=users.map(u=>`
       <div class="rec">
         <div><div class="nm">${u.email}</div><div class="meta">${u.disabled?'已停用':'使用中'}</div></div>
