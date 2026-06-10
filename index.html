@@ -882,6 +882,13 @@ function viewSettings(){
     <div class="field"><label class="flabel">新信箱</label><input type="email" class="finput" id="stNewEmail" placeholder="new@gmail.com"></div>
     <button class="btn-ghost" onclick="doChangeEmail()">更新信箱</button>
 
+    <div class="diamond-sep">— 人員管理 —</div>
+    <div id="staffList"><div class="empty">載入中...</div></div>
+
+    <div class="diamond-sep">— 資料管理 —</div>
+    <div style="color:#777;font-size:12px;line-height:1.8;margin-bottom:14px;">清除指定月份以前的所有記錄，此操作無法復原。</div>
+    <div class="field"><label class="flabel">清除此日期之前的資料</label><input type="date" class="finput" id="clearBefore"></div>
+    <button class="btn-ghost" style="color:#c66;border-color:#3a1a1a;" onclick="doClearData()">清除資料</button>
     <div class="diamond-sep">✦ &nbsp; ✦ &nbsp; ✦</div>
     <button class="btn-ghost" onclick="doLogout()" style="color:#c66;border-color:#3a1a1a;">登出</button>
   </div>`;
@@ -917,7 +924,42 @@ window.doChangeEmail = async function(){
     else toast('更新失敗：'+e.message);
   }
 };
+window.loadStaffList = async function(){
+  const list=$('staffList');if(!list)return;
+  try{
+    const snap=await getDocs(collection(db,'users'));
+    const users=snap.docs.map(d=>({id:d.id,...d.data()})).filter(u=>u.role==='staff');
+    if(!users.length){list.innerHTML='<div class="empty">目前沒有工讀生帳號</div>';return;}
+    list.innerHTML=users.map(u=>`
+      <div class="rec">
+        <div><div class="nm">${u.email}</div><div class="meta">${u.disabled?'已停用':'使用中'}</div></div>
+        <button class="btn-ghost" style="width:auto;padding:0 14px;height:36px;font-size:12px;${u.disabled?'':'color:#c66;border-color:#3a1a1a;'}" 
+          onclick="toggleStaff('${u.id}',${u.disabled})">${u.disabled?'啟用':'停用'}</button>
+      </div>`).join('');
+  }catch(e){console.error(e);}
+};
 
+window.toggleStaff = async function(uid, isDisabled){
+  try{
+    await updateDoc(doc(db,'users',uid),{disabled:!isDisabled});
+    toast(isDisabled?'已啟用':'已停用');
+    loadStaffList();
+  }catch(e){toast('操作失敗');}
+};
+
+window.doClearData = async function(){
+  const before=$('clearBefore').value.replace(/-/g,'/');
+  if(!before){toast('請選擇日期');return;}
+  if(!confirm(`確定要刪除 ${before} 之前的所有記錄嗎？此操作無法復原！`))return;
+  try{
+    const snap=await getDocs(query(collection(db,'records'),where('date','<',before)));
+    if(snap.empty){toast('沒有符合的資料');return;}
+    const batch=[];
+    snap.docs.forEach(d=>batch.push(deleteDoc(doc(db,'records',d.id))));
+    await Promise.all(batch);
+    toast(`已刪除 ${snap.size} 筆記錄`);
+  }catch(e){toast('刪除失敗：'+e.message);}
+};
 </script>
 </body>
 </html>
