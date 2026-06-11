@@ -736,10 +736,20 @@ window.runSearch=async function(){
   const q=$('searchIn').value.trim();
   const box=$('searchResult');
   if(!q){box.innerHTML='<div class="empty">輸入關鍵字開始搜尋</div>';return;}
+  if(q.length<2){box.innerHTML='<div class="empty">請輸入至少2個字</div>';return;}
+  box.innerHTML='<div class="empty">搜尋中...</div>';
   try{
-    const snap=await getDocs(collection(db,'records'));
-    const recs=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(r=>(r.name||'').includes(q)||(r.phone||'').includes(q));
+    // 用 where 做伺服器端查詢，不再撈全部資料
+    const [nameSnap, phoneSnap] = await Promise.all([
+      getDocs(query(collection(db,'records'), where('name','>=',q), where('name','<=',q+''), orderBy('name'))),
+      getDocs(query(collection(db,'records'), where('phone','>=',q), where('phone','<=',q+''), orderBy('phone')))
+    ]);
+    // 合併結果並去重
+    const seen=new Set();
+    const recs=[];
+    [...nameSnap.docs,...phoneSnap.docs].forEach(d=>{
+      if(!seen.has(d.id)){seen.add(d.id);recs.push({id:d.id,...d.data()});}
+    });
     if(!recs.length){box.innerHTML='<div class="empty">找不到符合的記錄</div>';return;}
     const byName={};
     recs.forEach(r=>{const k=r.name+'|'+(r.phone||'');(byName[k]=byName[k]||[]).push(r);});
@@ -752,8 +762,8 @@ window.runSearch=async function(){
           <div><span style="color:#f0f0f0;font-size:16px;font-weight:500;">${nm}</span><span class="search-result-meta">${ph||''}</span></div>
           ${isOwner?`<div style="font-size:11px;color:#666;">累計 <span class="en" style="color:#bbb;">$${fmtMoney(sum)}</span> · ${list.length}次</div>`:`<div style="font-size:11px;color:#666;">${list.length}次</div>`}
         </div>
-        ${list.map(r=>`<div class="rec" onclick="openRec('${r.id}')">
-          <div><div class="nm">${r.name}</div><div class="meta">${r.date.slice(5)} ${r.time}　${r.services.join('・')}</div></div>
+        ${list.map(r=>`<div class="rec${r.pendingDelete?' pending-del':''}" onclick="openRec('${r.id}')">
+          <div><div class="nm">${r.name}${r.pendingDelete?'<span class="pending-tag">待刪除</span>':''}</div><div class="meta">${r.date.slice(5)} ${r.time}　${r.services.join('・')}</div></div>
           ${isOwner?`<div class="pr">$${fmtMoney(r.price)}</div>`:''}
         </div>`).join('')}
       </div>`;
