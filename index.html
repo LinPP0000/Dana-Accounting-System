@@ -320,7 +320,7 @@ const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
-const SVCS = ['剪髮','染髮','燙髮','護髮','頭皮護理','局部燙','局部染','壓貼燙'];
+const SVCS = ['剪髮','染髮','燙髮','護髮','頭皮護理','局部燙','局部染','壓貼燙','其他'];
 let currentUser = null;
 let currentRole = null; // 'owner' | 'staff'
 let currentUserEmail = '';
@@ -449,6 +449,7 @@ function buildNav(){
     {view:'today_clients', ic:'◈', label:'今日客戶', always:true},
     {view:'search', ic:'⌕', label:'搜尋客人', always:true},
     {view:'today', ic:'$', label:'今日營業額', ownerOnly:true},
+    {view:'daily', ic:'◷', label:'日報表', ownerOnly:true},
     {view:'month', ic:'▦', label:'月結報表', ownerOnly:true},
     {view:'export', ic:'⤓', label:'匯出 Excel', ownerOnly:true},
     {view:'invite', ic:'✉', label:'邀請碼管理', ownerOnly:true},
@@ -478,6 +479,7 @@ window.nav = function(view){
   else if(view==='today_clients') area.innerHTML=viewTodayClients();
   else if(view==='today'&&isOwner) area.innerHTML=viewToday();
   else if(view==='month'&&isOwner) area.innerHTML=viewMonth();
+  else if(view==='daily'&&isOwner){ area.innerHTML=viewDaily(); renderDaily(); }
   else if(view==='search') area.innerHTML=viewSearch();
   else if(view==='export'&&isOwner) area.innerHTML=viewExport();
   else if(view==='invite'&&isOwner) area.innerHTML=viewInvite();
@@ -505,6 +507,7 @@ function viewAdd(){
     <div class="field"><label class="flabel">客人姓名</label><input class="finput" id="inName" placeholder="輸入姓名"></div>
     <div class="field"><label class="flabel">電話</label><input class="finput" id="inPhone" placeholder="0900-000-000" inputmode="tel"></div>
     <div class="field"><label class="flabel">服務項目（可複選）</label><div class="svc-grid" id="svcGrid"></div></div>
+    <div id="otherSvcWrap" style="display:none;margin-top:8px;"><input class="finput" id="otherSvcInput" placeholder="請輸入其他服務內容" oninput="draft.otherSvc=this.value"></div>
     <div style="display:flex;gap:14px;">
     <div class="field" style="flex:1.4;">
     <label class="flabel">價格</label>
@@ -525,6 +528,12 @@ function viewAdd(){
 function afterAddRender(){
   draft={svcs:[],sign:''};
   $('svcGrid').innerHTML=SVCS.map(s=>`<div class="svc-box" data-s="${s}" onclick="toggleSvc('${s}')"><span class="nm">${s}</span><span class="ck">✓</span></div>`).join('');
+  // 其他選項輸入框
+  const otherWrap=$('otherSvcWrap');
+  if(otherWrap){
+    const hasOther=draft.svcs.includes('其他')||draft.svcs.some(s=>!SVCS.slice(0,-1).includes(s)&&s!=='其他');
+    otherWrap.style.display=hasOther?'block':'none';
+  }
   const d=new Date();
   $('inDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
@@ -533,6 +542,8 @@ window.toggleSvc=function(s){
   const i=draft.svcs.indexOf(s);
   if(i>=0)draft.svcs.splice(i,1);else draft.svcs.push(s);
   document.querySelector(`.svc-box[data-s="${s}"]`).classList.toggle('sel');
+  const wrap=$('otherSvcWrap');
+  if(wrap) wrap.style.display=draft.svcs.includes('其他')?'block':'none';
 };
 
 window.saveRecord=async function(){
@@ -544,9 +555,16 @@ window.saveRecord=async function(){
   if(!name){toast('請填寫姓名');return;}
   if(draft.svcs.length===0){toast('請選擇服務項目');return;}
   if(!price){toast('請填寫價格');return;}
+  // 處理「其他」服務的自訂內容
+  let finalSvcs=[...draft.svcs];
+  if(finalSvcs.includes('其他')){
+    const otherVal=($('otherSvcInput')&&$('otherSvcInput').value.trim())||'';
+    if(!otherVal){toast('請填寫其他服務內容');return;}
+    finalSvcs=finalSvcs.map(s=>s==='其他'?otherVal:s);
+  }
   const date=dateInput?dateInput.replace(/-/g,'/'):todayStr();
   const rec={
-    name,phone,price,services:draft.svcs,date,time:nowTime(),
+    name,phone,price,services:finalSvcs,date,time:nowTime(),
     sign:draft.sign,createdAt:serverTimestamp(),
     createdBy:currentUser.uid,createdByEmail:currentUserEmail
   };
@@ -680,6 +698,49 @@ function recCard(r){
     <div><div class="nm">${r.name}${pendingTag}</div><div class="meta">${r.services.join('・')}　${r.time}</div></div>
     <div class="pr">$${fmtMoney(r.price)}</div>
   </div>`;
+}
+
+/* ===== 日報表 ===== */
+let dCur=new Date();
+function viewDaily(){
+  return `<div class="body-pad">
+    <div class="sec-title">◷ &nbsp; 日報表</div>
+    <div class="msel"><button class="mbtn" onclick="dPrev()">‹</button><span class="mtxt" id="dTxt"></span><button class="mbtn" onclick="dNext()">›</button></div>
+    <div id="dBody"><div class="empty">載入中...</div></div>
+  </div>`;
+}
+window.dPrev=function(){dCur.setDate(dCur.getDate()-1);renderDaily();}
+window.dNext=function(){dCur.setDate(dCur.getDate()+1);renderDaily();}
+
+async function renderDaily(){
+  const y=dCur.getFullYear();
+  const m=String(dCur.getMonth()+1).padStart(2,'0');
+  const d=String(dCur.getDate()).padStart(2,'0');
+  const dateStr=y+'/'+m+'/'+d;
+  const dTxt=$('dTxt');if(dTxt)dTxt.textContent=y+'.'+m+'.'+d;
+  try{
+    const snap=await getDocs(query(collection(db,'records'),where('date','==',dateStr),orderBy('time','asc')));
+    const recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const total=recs.reduce((s,r)=>s+(r.price||0),0);
+    const body=$('dBody');if(!body)return;
+    if(!recs.length){body.innerHTML='<div class="empty">當日無記錄 ✦</div>';return;}
+    const svcCount={};
+    recs.forEach(r=>r.services.forEach(s=>{svcCount[s]=(svcCount[s]||0)+1;}));
+    const svcRows=Object.keys(svcCount).sort((a,b)=>svcCount[b]-svcCount[a])
+      .map(s=>`<div class="svc-stat"><span class="k">${s}</span><span class="v">${svcCount[s]} 次</span></div>`).join('');
+    body.innerHTML=`
+      <div class="stat-big">
+        <div class="lb">DAILY · ${y}.${m}.${d}</div>
+        <div class="num">NT$ ${fmtMoney(total)}</div>
+        <div class="cnt">共 ${recs.length} 筆服務</div>
+      </div>
+      <div class="sec-title" style="margin:26px 0 8px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">服務項目統計</div>
+      ${svcRows}
+      <div class="sec-title" style="margin:26px 0 12px;font-size:11px;letter-spacing:0.3em;color:#666;font-weight:400;">當日明細</div>
+      ${recs.map(r=>`<div class="rec${r.pendingDelete?' pending-del':''}" onclick="openRec('${r.id}')">
+        <div><div class="nm">${r.name}${r.pendingDelete?'<span class="pending-tag">待刪除</span>':''}</div><div class="meta">${r.time}　${r.services.join('・')}</div></div>
+        <div class="pr">$${fmtMoney(r.price)}</div></div>`).join('')}`;
+  }catch(e){console.error(e);}
 }
 
 /* ===== 月結報表 ===== */
