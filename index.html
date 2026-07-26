@@ -673,15 +673,15 @@ async function loadToday(){
   try{
     const isOwnerT=currentRole==='owner';
   const [daySnap,monthSnap]=await Promise.all([
-      getDocs(isOwnerT
-        ? query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc'))
-        : query(collection(db,'records'),where('date','==',t),where('createdBy','==',currentUser.uid),orderBy('createdAt','desc'))),
-      getDocs(isOwnerT
-        ? query(collection(db,'records'),where('date','>=',month+'/01'))
-        : query(collection(db,'records'),where('date','>=',month+'/01'),where('createdBy','==',currentUser.uid)))
+      getDocs(query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'records'),where('date','>=',month+'/01')))
     ]);
-    const recs=daySnap.docs.map(d=>({id:d.id,...d.data()}));
-    const mRecs=monthSnap.docs.map(d=>d.data());
+    let recs=daySnap.docs.map(d=>({id:d.id,...d.data()}));
+    let mRecs=monthSnap.docs.map(d=>d.data());
+    if(!isOwnerT){
+      recs=recs.filter(r=>r.createdBy===currentUser.uid);
+      mRecs=mRecs.filter(r=>r.createdBy===currentUser.uid);
+    }
     const total=recs.reduce((s,r)=>s+(r.price||0),0);
     const mTotal=mRecs.reduce((s,r)=>s+(r.price||0),0);
     const body=$('todayBody');
@@ -729,10 +729,9 @@ async function renderDaily(){
   const dTxt=$('dTxt');if(dTxt)dTxt.textContent=y+'.'+m+'.'+d;
   try{
     const isOwnerD=currentRole==='owner';
-    const snap=await getDocs(isOwnerD
-      ? query(collection(db,'records'),where('date','==',dateStr),orderBy('time','asc'))
-      : query(collection(db,'records'),where('date','==',dateStr),where('createdBy','==',currentUser.uid),orderBy('time','asc')));
-    const recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const snap=await getDocs(query(collection(db,'records'),where('date','==',dateStr),orderBy('time','asc')));
+    let recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!isOwnerD) recs=recs.filter(r=>r.createdBy===currentUser.uid);
     const total=recs.reduce((s,r)=>s+(r.price||0),0);
     const body=$('dBody');if(!body)return;
     if(!recs.length){body.innerHTML='<div class="empty">當日無記錄 ✦</div>';return;}
@@ -773,10 +772,9 @@ async function renderMonth(){
   const mTxt=$('mTxt');if(mTxt)mTxt.textContent=y+'.'+String(m).padStart(2,'0');
   try{
     const isOwnerM=currentRole==='owner';
-    const snap=await getDocs(isOwnerM
-      ? query(collection(db,'records'),where('date','>=',key+'/01'),where('date','<=',key+'/31'),orderBy('date','desc'))
-      : query(collection(db,'records'),where('date','>=',key+'/01'),where('date','<=',key+'/31'),where('createdBy','==',currentUser.uid),orderBy('date','desc')));
-    const recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const snap=await getDocs(query(collection(db,'records'),where('date','>=',key+'/01'),where('date','<=',key+'/31'),orderBy('date','desc')));
+    let recs=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!isOwnerM) recs=recs.filter(r=>r.createdBy===currentUser.uid);
     const total=recs.reduce((s,r)=>s+(r.price||0),0);
     const svcCount={};
     recs.forEach(r=>r.services.forEach(s=>{svcCount[s]=(svcCount[s]||0)+1;}));
