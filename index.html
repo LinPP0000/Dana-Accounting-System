@@ -642,14 +642,14 @@ async function loadTodayClients(){
   const t=todayStr();
   try{
     const isOwner=currentRole==='owner';
-    const q=isOwner
-      ? query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc'))
-      : query(collection(db,'records'),where('date','==',t),where('createdBy','==',currentUser.uid),orderBy('createdAt','desc'));
-    const snap=await getDocs(q);
+    const snap=await getDocs(query(collection(db,'records'),where('date','==',t),orderBy('createdAt','desc')));
+    // 員工只看自己的（前端過濾）
     const list=$('todayClientList');
     if(!list)return;
-    if(snap.empty){list.innerHTML='<div class="empty">今日尚無記錄</div>';return;}
-    list.innerHTML=snap.docs.map(d=>{
+    let docs=snap.docs;
+    if(!isOwner) docs=docs.filter(d=>d.data().createdBy===currentUser.uid);
+    if(!docs.length){list.innerHTML='<div class="empty">今日尚無記錄</div>';return;}
+    list.innerHTML=docs.map(d=>{
       const r={id:d.id,...d.data()};
       const pt=r.pendingDelete?'<span class="pending-tag">待刪除</span>':'';
       return `<div class="rec${r.pendingDelete?' pending-del':''}" onclick="openRec('${r.id}')">
